@@ -4,7 +4,6 @@ Snapshot a Python virtual environment into a lockfile, then restore it from a
 local cache. Once the wheels are cached, restoring an env doesn't touch PyPI.
 
 [![CI](https://github.com/VKSFY/venvsnap/actions/workflows/ci.yml/badge.svg)](https://github.com/VKSFY/venvsnap/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/venvsnap.svg)](https://pypi.org/project/venvsnap/)
 
 ## Install
 
