@@ -36,13 +36,3 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
-
-# pyanchor working files
-*.lock.bak
-.pyanchor-cache/
-
-# Demo artifacts
-benchmarks/results/*.json
-
-# Editor / agent state
-.claude/
