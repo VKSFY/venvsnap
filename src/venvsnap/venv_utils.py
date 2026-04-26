@@ -1,4 +1,4 @@
-"""Helpers for inspecting and creating virtual environments."""
+"""venv inspection and creation."""
 
 from __future__ import annotations
 
@@ -12,16 +12,13 @@ from pathlib import Path
 
 
 class VenvError(Exception):
-    """Raised when a venv operation fails."""
+    pass
 
 
 def venv_python(venv_path: Path) -> Path:
-    """Return the path to the Python interpreter inside ``venv_path``."""
     if os.name == "nt":
-        candidate = venv_path / "Scripts" / "python.exe"
-    else:
-        candidate = venv_path / "bin" / "python"
-    return candidate
+        return venv_path / "Scripts" / "python.exe"
+    return venv_path / "bin" / "python"
 
 
 def is_venv(path: Path) -> bool:
@@ -29,7 +26,6 @@ def is_venv(path: Path) -> bool:
 
 
 def create_venv(path: Path, with_pip: bool = True) -> None:
-    """Create a fresh virtual environment at ``path``."""
     if path.exists() and not is_venv(path):
         raise VenvError(f"refusing to overwrite non-venv directory: {path}")
     builder = venv.EnvBuilder(with_pip=with_pip, clear=False, upgrade_deps=False)
@@ -37,7 +33,6 @@ def create_venv(path: Path, with_pip: bool = True) -> None:
 
 
 def get_python_version(venv_path: Path) -> str:
-    """Return the ``major.minor.patch`` version of the venv's interpreter."""
     py = venv_python(venv_path)
     if not py.is_file():
         raise VenvError(f"no python interpreter found at {py}")
@@ -53,7 +48,6 @@ def get_python_version(venv_path: Path) -> str:
 
 
 def list_installed(venv_path: Path) -> list[tuple[str, str]]:
-    """Return ``(name, version)`` for every package installed in the venv."""
     py = venv_python(venv_path)
     if not py.is_file():
         raise VenvError(f"no python interpreter found at {py}")
@@ -77,7 +71,6 @@ def list_installed(venv_path: Path) -> list[tuple[str, str]]:
 
 
 def current_platform_tag() -> str:
-    """A short string describing the current platform for the lockfile."""
     return f"{platform.system().lower()}-{platform.machine().lower()}"
 
 

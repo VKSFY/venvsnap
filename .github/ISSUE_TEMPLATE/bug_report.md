@@ -7,31 +7,24 @@ labels: bug
 
 **What happened**
 
-A short description.
-
-**To reproduce**
-
-The exact command(s) you ran:
+**Reproduction**
 
 ```
 venvsnap ...
 ```
 
-**Expected behavior**
-
-What you expected to happen instead.
+**Expected**
 
 **Environment**
 
-- venvsnap version: `venvsnap --version`
-- Python version: `python --version`
+- venvsnap: `venvsnap --version`
+- Python: `python --version`
 - OS:
-- Lockfile attached or pasted? (helpful)
 
-**Logs / output**
+**Output**
 
-Run with `--workers 1` to make tracebacks readable.
+Run with `--workers 1` for readable tracebacks.
 
 ```
-<paste output>
+<paste>
 ```

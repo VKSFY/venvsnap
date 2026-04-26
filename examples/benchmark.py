@@ -1,17 +1,8 @@
-"""Quick benchmark: pip install vs venvsnap restore (cold + warm).
+"""Time pip install -r vs venvsnap restore (cold cache, then warm cache).
 
-Usage:
     python examples/benchmark.py
 
-The script:
-1. Creates a throwaway venv, installs a small but representative dependency
-   set with `pip install`, and times it.
-2. Runs `venvsnap snapshot` against that venv.
-3. Wipes the venv, wipes the cache, runs `venvsnap restore` (cold), and times it.
-4. Wipes the venv only (cache stays warm), runs `venvsnap restore` again, and
-   times it.
-
-Numbers vary with bandwidth and CPU. Run it on your own hardware.
+Numbers depend on bandwidth and hardware.
 """
 
 from __future__ import annotations

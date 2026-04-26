@@ -1,23 +1,23 @@
 ---
 name: Feature request
-about: Suggest an idea
+about: Suggest something
 title: ''
 labels: enhancement
 ---
 
-**Problem**
+**Use case**
 
 What workflow is awkward today?
 
-**Proposal**
+**Proposed change**
 
-What would make it nicer? A flag, a new subcommand, behavior change?
+A flag, a new subcommand, a behavior change?
 
 **Alternatives**
 
 What did you try first?
 
-**Scope check**
+**Scope**
 
-venvsnap is intentionally small — it does *snapshot* and *restore*, not
-resolution, not a new package manager. Does this fit?
+venvsnap covers snapshot and restore. It is not a resolver and not a
+replacement for pip/uv/poetry. Does this fit?

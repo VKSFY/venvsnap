@@ -1,4 +1,4 @@
-"""Content-addressed local cache for wheel files."""
+"""Wheel cache, keyed by sha256."""
 
 from __future__ import annotations
 
@@ -23,10 +23,9 @@ class CacheStats:
 
 
 class Cache:
-    """Stores wheel files keyed by their sha256 hash.
+    """Wheels at ``<root>/wheels/<aa>/<sha256>/<filename>.whl``.
 
-    Layout: ``<root>/wheels/<aa>/<sha256>/<wheel-filename>``.
-    The two-character bucket avoids huge directories on case-insensitive
+    The two-char bucket keeps directories shallow on case-insensitive
     filesystems.
     """
 

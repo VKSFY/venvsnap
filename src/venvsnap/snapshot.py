@@ -1,4 +1,4 @@
-"""Capture an existing virtual environment into a lockfile."""
+"""Snapshot a venv into a lockfile."""
 
 from __future__ import annotations
 
@@ -25,9 +25,8 @@ class SnapshotResult:
 
 
 ProgressCallback = Callable[[str, str, str], None]
-"""Called as ``progress(name, version, status)`` where status is one of
-``"resolving"``, ``"resolved"``, or ``"skipped: <reason>"``.
-"""
+# progress(name, version, status). status is "resolving", "resolved", or
+# "skipped: <reason>".
 
 
 def snapshot(
@@ -36,7 +35,7 @@ def snapshot(
     workers: int = 8,
     progress: ProgressCallback | None = None,
 ) -> SnapshotResult:
-    """Build a lockfile by inspecting ``venv_path`` and resolving wheels on PyPI."""
+    """Walk ``venv_path`` with pip list and look every package up on PyPI."""
     installed = list_installed(venv_path)
     python_version = get_python_version(venv_path)
     platform_tag = current_platform_tag()

@@ -1,4 +1,4 @@
-"""Read and write venvsnap lockfiles."""
+"""Read and write venvsnap.lock files."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ DEFAULT_LOCKFILE_NAME = "venvsnap.lock"
 
 
 class LockfileError(Exception):
-    """Raised when a lockfile is malformed or incompatible."""
+    pass
 
 
 @dataclass

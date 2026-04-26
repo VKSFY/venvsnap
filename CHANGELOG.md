@@ -1,19 +1,16 @@
 # Changelog
 
-All notable changes to venvsnap are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
-adheres to [Semantic Versioning](https://semver.org/).
+## 0.1.0 (2026-04-25)
 
-## [0.1.0] - 2026-04-25
+First release.
 
-Initial public release.
-
-### Added
-- `venvsnap snapshot` to capture the current venv into a TOML lockfile.
-- `venvsnap restore` to rebuild a venv from a lockfile, using a content-
-  addressed local cache at `~/.venvsnap/cache/`.
-- `venvsnap verify` to detect drift between a venv and its lockfile.
-- `venvsnap cache info` and `venvsnap cache clean` for cache management.
-- Parallel PyPI lookups during snapshot and parallel wheel downloads during
-  restore.
-- Test suite covering the lockfile, cache, PyPI client, and CLI.
+- `snapshot`: walk a venv with `pip list`, look every package up on PyPI,
+  pick a wheel for the current platform, write versions and sha256 hashes
+  to `venvsnap.lock`. PyPI lookups run in parallel.
+- `restore`: read a lockfile, fetch missing wheels into the cache (in
+  parallel), create the venv if needed, install everything via
+  `pip install --no-deps --no-index`.
+- `verify`: report missing/extra/version-mismatched packages between a
+  venv and a lockfile.
+- `cache info`, `cache clean`: inspect or wipe the local wheel cache,
+  which lives under `~/.venvsnap/cache/` by default.

@@ -17,7 +17,7 @@ from venvsnap.venv_utils import VenvError, create_venv, is_venv, venv_python
 
 
 class RestoreError(Exception):
-    """Raised when a restore cannot proceed."""
+    pass
 
 
 @dataclass
@@ -37,9 +37,8 @@ class RestoreResult:
 
 
 DownloadCallback = Callable[[str, str, str], None]
-"""``download_progress(name, version, status)`` where status is one of
-``"hit"``, ``"downloading"``, ``"downloaded"``, or ``"failed: <reason>"``.
-"""
+# progress(name, version, status). status is "hit", "downloading",
+# "downloaded", or "failed: <reason>".
 
 
 def restore(
@@ -50,7 +49,7 @@ def restore(
     workers: int = 8,
     progress: DownloadCallback | None = None,
 ) -> RestoreResult:
-    """Restore ``venv_path`` to match ``lockfile`` using ``cache`` where possible."""
+    """Install every wheel from ``lockfile`` into ``venv_path``."""
     cache = cache or Cache()
     cache.wheels_dir.mkdir(parents=True, exist_ok=True)
 

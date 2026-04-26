@@ -1,94 +1,58 @@
 # venvsnap
 
-> Snapshot your Python venv. Restore it in seconds, anywhere.
+Snapshot a Python virtual environment into a lockfile, then restore it from a
+local cache. Once the wheels are cached, restoring an env doesn't touch PyPI.
 
 [![CI](https://github.com/VKSFY/venvsnap/actions/workflows/ci.yml/badge.svg)](https://github.com/VKSFY/venvsnap/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/venvsnap.svg)](https://pypi.org/project/venvsnap/)
-[![Python](https://img.shields.io/pypi/pyversions/venvsnap.svg)](https://pypi.org/project/venvsnap/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-`venvsnap` captures the exact contents of a `.venv` into a small, human-readable
-lockfile. Every wheel listed in the lockfile is content-addressed in a local
-cache, so re-creating the same environment — on another branch, on a teammate's
-laptop, or in CI — completes in seconds with zero network round-trips after the
-first run.
-
-```text
-$ venvsnap restore
-venvsnap restoring 47 packages -> .venv
-   cache: 47 hits, 0 to download
-
-✓ restored 47 packages in 1.18s
-   cache: 47 hits, 0 downloads (0.0 MB in 0.00s)
-   install: 1.12s
-```
-
-## Why venvsnap
-
-Recreating a `.venv` is one of the most common Python operations and one of the
-slowest. `pip install -r requirements.txt` re-resolves dependencies, re-checks
-PyPI, re-downloads wheels you already had, and re-installs them serially.
-
-`venvsnap` is laser-focused on one job: take an environment that already works
-and reproduce it byte-for-byte, fast.
-
-| Operation                                  | `pip install -r` | `venvsnap restore` (cold) | `venvsnap restore` (warm) |
-| ------------------------------------------ | ---------------- | ------------------------- | ------------------------- |
-| Restore a 47-package data-science env\*    | ~38 s            | ~14 s                     | **~1.2 s**                |
-
-\*Indicative numbers from `examples/benchmark.py` on a typical laptop with a
-broadband connection. Run it yourself — the script is committed.
-
-### How it differs from the alternatives
-
-- **vs `pip install -r requirements.txt`** — `venvsnap` skips the resolver
-  entirely and installs from a local cache by default. No network, no version
-  solver, no surprises.
-- **vs `uv`** — `uv` is a full pip/resolver replacement. `venvsnap` does not
-  resolve, does not replace `pip`, and works alongside whatever package
-  manager you already use. It is intentionally tiny.
-- **vs `pip-tools`** — `pip-tools` produces a requirements pin file; you still
-  pay the install cost every time. `venvsnap` keeps the wheels themselves so
-  installs are essentially file copies.
 
 ## Install
 
-```bash
+```
 pip install venvsnap
 ```
 
 Requires Python 3.9 or newer.
 
-## Quickstart
+## Usage
 
-```bash
-# 1. inside a working venv
-venvsnap snapshot                 # writes venvsnap.lock
+In a working venv:
 
-# 2. commit the lockfile
-git add venvsnap.lock && git commit -m "pin venv"
-
-# 3. anywhere — fresh checkout, new laptop, CI
-venvsnap restore                  # rebuilds .venv in seconds
+```
+venvsnap snapshot
 ```
 
-That's the whole workflow.
+This walks `pip list`, looks each package up on PyPI to find a wheel matching
+the current platform, and writes the result to `venvsnap.lock` (TOML). Check
+the lockfile in.
 
-## Commands
+On another machine, in CI, or in a fresh clone:
 
-| Command             | What it does                                                 |
-| ------------------- | ------------------------------------------------------------ |
-| `venvsnap snapshot` | Read the current `.venv`, look up each wheel on PyPI, write a TOML lockfile with hashes and URLs. |
-| `venvsnap restore`  | Read the lockfile, fetch any missing wheels into the cache (in parallel), and install them into a target venv with `pip --no-deps --no-index`. |
-| `venvsnap verify`   | Compare a venv against a lockfile and report drift.          |
-| `venvsnap cache info` | Show the cache location and total size.                    |
-| `venvsnap cache clean` | Wipe the cache.                                          |
+```
+venvsnap restore
+```
 
-Each command supports `--help`.
+This reads the lockfile, downloads any wheels that aren't already in
+`~/.venvsnap/cache/`, creates `.venv` if needed, and installs everything with
+`pip install --no-deps --no-index`. After the first run for a given lockfile,
+no network is involved.
 
-## The lockfile
+The cache is shared across projects. The first time `requests-2.31.0-py3-none-any.whl`
+gets downloaded, every other project that pins the same wheel reuses the same file.
 
-`venvsnap.lock` is human-readable TOML. It looks like this:
+## Other commands
+
+```
+venvsnap verify        compare a venv against a lockfile, report drift
+venvsnap cache info    show the cache path and size
+venvsnap cache clean   delete every wheel from the cache
+```
+
+`--help` on any command lists its flags.
+
+## Lockfile
+
+`venvsnap.lock` is plain TOML. A two-package example:
 
 ```toml
 version = 1
@@ -103,48 +67,69 @@ sha256 = "58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f"
 wheel_filename = "requests-2.31.0-py3-none-any.whl"
 wheel_url = "https://files.pythonhosted.org/packages/.../requests-2.31.0-py3-none-any.whl"
 requires_python = ">=3.7"
+
+[[package]]
+name = "rich"
+version = "13.7.0"
+...
 ```
 
-Commit it. It diffs cleanly. It contains everything needed to reproduce the
-environment.
+Diffs are readable: a dependency bump shows up as one `version`/`sha256`/`wheel_url`
+change.
 
-## The cache
-
-By default the cache lives at `~/.venvsnap/cache/wheels/`, and wheels are
-stored under their sha256 hash:
+## Cache layout
 
 ```
-~/.venvsnap/cache/wheels/
-└── 58/58cd2187...003f/requests-2.31.0-py3-none-any.whl
+~/.venvsnap/cache/wheels/<aa>/<sha256>/<filename>.whl
 ```
 
-Override the location with `--cache PATH` or by passing it to any command. The
-cache is shared across every project on the machine, so a wheel downloaded for
-one project is instantly available to every other project that pins the same
-version.
+`<aa>` is the first two hex chars of the sha256, used as a bucket so directories
+stay shallow on case-insensitive filesystems. Override with `--cache PATH` on
+any command.
 
-## What venvsnap does not do
+## How it compares
 
-- **No resolver.** If you don't already have a working environment, use `pip`,
-  `uv`, or `poetry` to build one — then `venvsnap snapshot` it.
-- **No source builds.** `venvsnap` only handles wheels published on PyPI. If
-  your project depends on a package that ships only an sdist, snapshot will
-  warn and skip it.
-- **No private indexes** in 0.1. (Planned.)
+`pip install -r requirements.txt` re-resolves dependencies and consults PyPI on
+every run. venvsnap skips the resolver. With a warm cache, restore is wheel
+copies plus one `pip install` invocation.
 
-These limitations are deliberate. The 1.0 promise is: *small, predictable,
-fast.*
+`uv` is a faster pip with a real resolver. venvsnap doesn't replace either: use
+pip or uv to build the env, then `venvsnap snapshot` to record it. They compose
+fine.
+
+`pip-tools` writes a pinned requirements file. Install still goes through the
+index. venvsnap stores the wheels themselves.
+
+## Limits
+
+- Wheels only. If a package only ships an sdist, snapshot warns and skips it.
+- PyPI only. Private indexes are not supported in 0.1.
+- No resolver. venvsnap captures whatever is already installed; building the
+  env is somebody else's job.
+
+## Benchmark
+
+`examples/benchmark.py` installs a small dependency set with `pip install -r`,
+then runs `venvsnap restore` cold and warm, and prints the times. Numbers vary
+with bandwidth and hardware, so run it locally.
+
+```
+python examples/benchmark.py
+```
 
 ## Development
 
-```bash
+```
 git clone https://github.com/VKSFY/venvsnap
 cd venvsnap
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
-pytest
+python -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/pytest
 ```
+
+`ruff check`, `ruff format --check`, `mypy src`, and `pytest` all run in CI on
+push.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

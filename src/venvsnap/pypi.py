@@ -1,4 +1,4 @@
-"""Minimal PyPI JSON API client for resolving wheel artifacts."""
+"""PyPI JSON API client."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ PYPI_JSON_URL = "https://pypi.org/pypi/{name}/{version}/json"
 
 
 class PypiError(Exception):
-    """Raised when PyPI metadata can't be fetched or parsed."""
+    pass
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class WheelArtifact:
 
 
 def fetch_release(client: httpx.Client, name: str, version: str) -> list[WheelArtifact]:
-    """Fetch a release's wheel artifacts from PyPI's JSON API."""
+    """Return the wheel artifacts for ``name==version``."""
     url = PYPI_JSON_URL.format(name=name, version=version)
     try:
         resp = client.get(url, timeout=30.0)
@@ -68,12 +68,10 @@ def select_wheel(
     artifacts: list[WheelArtifact],
     compatible_tags: list[Tag] | None = None,
 ) -> WheelArtifact | None:
-    """Choose the best wheel for the current interpreter+platform.
+    """Pick the highest-priority wheel matching the current interpreter and platform.
 
-    The first artifact whose tag set intersects ``compatible_tags`` and which
-    appears earliest in the system tag priority list wins. Pure-Python wheels
-    (``py3-none-any``) are usually the lowest priority and so are picked only
-    when no platform-specific wheel matches.
+    A platform-specific wheel beats ``py3-none-any``, since the latter shows up
+    last in ``packaging.tags.sys_tags()``.
     """
     if not artifacts:
         return None
@@ -94,7 +92,7 @@ def select_wheel(
 
 
 def _tags_from_filename(filename: str) -> list[Tag]:
-    """Parse PEP 425 tags out of a wheel filename without importing pip."""
+    """Parse PEP 425 tags out of a wheel filename."""
     stem = filename[:-4] if filename.endswith(".whl") else filename
     # name-version[-build]-python-abi-platform
     parts = stem.split("-")

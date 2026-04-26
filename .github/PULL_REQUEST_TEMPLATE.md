@@ -1,14 +1,14 @@
 ## Summary
 
-What changes, in one or two sentences.
+What changes.
 
-## Why
+## Motivation
 
-The user-facing reason. Linked issue if any.
+Why. Linked issue if there is one.
 
 ## Test plan
 
 - [ ] `pytest`
 - [ ] `ruff check . && ruff format --check .`
 - [ ] `mypy src`
-- [ ] Manual check of the affected CLI command (paste the output)
+- [ ] Manual run of the affected CLI command

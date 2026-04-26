@@ -1,41 +1,31 @@
-# Contributing to venvsnap
+# Contributing
 
-Thanks for considering a contribution! venvsnap is intentionally small, so the
-bar for new features is high — but bug reports, docs improvements, and tests
-are always welcome.
+Bug reports, docs fixes, and tests are welcome. For larger features, open an
+issue first so we can check whether it fits the scope (snapshot and restore,
+not a new package manager).
 
-## Setting up
+## Setup
 
-```bash
+```
 git clone https://github.com/VKSFY/venvsnap
 cd venvsnap
 python -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
-## Running checks
+## Checks
 
-```bash
-pytest                       # tests
-ruff check .                 # lint
-ruff format --check .        # formatting
-mypy src                     # types
+```
+pytest
+ruff check .
+ruff format --check .
+mypy src
 ```
 
-All four must pass before a PR is merged. CI runs them on every push.
+CI runs all four on push.
 
-## Scope
+## Bug reports
 
-venvsnap exists to make one operation — recreating an existing venv — as fast
-as possible. Anything that drifts toward "another package manager" is out of
-scope. Open an issue before working on a large change so we can confirm fit.
-
-## Reporting bugs
-
-Please include:
-
-- The output of `venvsnap --version`
-- Your Python version and OS
-- The exact command you ran
-- The full output, ideally with `--workers 1` to make tracebacks legible
+Include the output of `venvsnap --version`, your Python version, your OS, and
+the exact command. `--workers 1` makes tracebacks easier to read.

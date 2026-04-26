@@ -1,4 +1,4 @@
-"""venvsnap command-line interface."""
+"""Command-line interface."""
 
 from __future__ import annotations
 
@@ -8,9 +8,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-# Force UTF-8 on stdout/stderr so the unicode glyphs in our output don't crash
-# on legacy Windows codepages (cp1252, etc.). reconfigure() is a no-op when the
-# stream is already UTF-8 or doesn't support the call (e.g. captured pipes).
+# Avoid UnicodeEncodeError on Windows consoles that default to cp1252.
 for _stream in (sys.stdout, sys.stderr):
     with contextlib.suppress(AttributeError, OSError):
         _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
@@ -36,15 +34,13 @@ from venvsnap.venv_utils import VenvError, is_venv
 
 app = typer.Typer(
     add_completion=False,
-    help="Snapshot your Python venv. Restore it in seconds, anywhere.",
+    help="Snapshot a Python venv into a lockfile and restore it from a cache.",
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
-cache_app = typer.Typer(help="Inspect and manage the local wheel cache.")
+cache_app = typer.Typer(help="Inspect and manage the wheel cache.")
 app.add_typer(cache_app, name="cache")
 
-# legacy_windows=False prevents rich from falling back to the cp1252-bound
-# Windows console writer that can't handle unicode glyphs.
 console = Console(legacy_windows=False)
 err_console = Console(stderr=True, legacy_windows=False)
 
@@ -66,7 +62,7 @@ def _root(
         help="Show version and exit.",
     ),
 ) -> None:
-    """venvsnap — fast venv snapshots."""
+    pass
 
 
 @app.command("snapshot")
@@ -81,7 +77,7 @@ def snapshot_cmd(
         8, "--workers", "-j", min=1, max=32, help="Concurrent PyPI requests."
     ),
 ) -> None:
-    """Capture a venv into a [bold]venvsnap.lock[/bold] file."""
+    """Write a venvsnap.lock from the current venv."""
     if not is_venv(venv_path):
         err_console.print(f"[red]error:[/red] no virtual environment at {venv_path}")
         raise typer.Exit(code=2)
@@ -146,7 +142,7 @@ def restore_cmd(
         help="Override the cache directory (default: ~/.venvsnap/cache).",
     ),
 ) -> None:
-    """Restore a venv from a lockfile, using the local cache when possible."""
+    """Restore a venv from a lockfile."""
     try:
         lockfile = Lockfile.load(lockfile_path)
     except LockfileError as exc:
@@ -230,7 +226,7 @@ def verify_cmd(
         help="Lockfile to compare against.",
     ),
 ) -> None:
-    """Check whether ``--venv`` matches ``--lockfile`` (versions only)."""
+    """Compare a venv against a lockfile and report drift."""
     from venvsnap.venv_utils import list_installed
 
     try:

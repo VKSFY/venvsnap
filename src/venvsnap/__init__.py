@@ -1,4 +1,4 @@
-"""venvsnap — snapshot and restore Python virtual environments."""
+"""Snapshot and restore Python virtual environments."""
 
 from venvsnap._version import __version__
 from venvsnap.cache import Cache
