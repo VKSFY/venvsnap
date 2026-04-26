@@ -6,7 +6,6 @@ import json
 import os
 import platform
 import subprocess
-import sys
 import venv
 from pathlib import Path
 
@@ -72,7 +71,3 @@ def list_installed(venv_path: Path) -> list[tuple[str, str]]:
 
 def current_platform_tag() -> str:
     return f"{platform.system().lower()}-{platform.machine().lower()}"
-
-
-def current_python_version() -> str:
-    return ".".join(str(v) for v in sys.version_info[:3])

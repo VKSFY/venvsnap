@@ -23,22 +23,17 @@ REQUIREMENTS = [
 ]
 
 
-def time_block(label: str):
-    class _T:
-        def __enter__(self):
-            self.t0 = time.perf_counter()
-            print(f"-> {label} ...", flush=True)
-            return self
-
-        def __exit__(self, *exc):
-            self.elapsed = time.perf_counter() - self.t0
-            print(f"   {label}: {self.elapsed:.2f}s", flush=True)
-
-    return _T()
+def run(cmd):
+    subprocess.run(cmd, check=True)
 
 
-def run(cmd: list[str], cwd: Path | None = None) -> None:
-    subprocess.run(cmd, check=True, cwd=cwd)
+def time_run(label, cmd):
+    print(f"-> {label} ...", flush=True)
+    t0 = time.perf_counter()
+    run(cmd)
+    elapsed = time.perf_counter() - t0
+    print(f"   {elapsed:.2f}s", flush=True)
+    return elapsed
 
 
 def main() -> int:
@@ -53,66 +48,38 @@ def main() -> int:
 
     py = sys.executable
     venvsnap = [py, "-m", "venvsnap"]
+    venv_py = venv / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
 
-    # 1. baseline: pip install -r
     run([py, "-m", "venv", str(venv)])
-    venv_py = (
-        venv
-        / ("Scripts" if sys.platform == "win32" else "bin")
-        / ("python.exe" if sys.platform == "win32" else "python")
+    pip_elapsed = time_run(
+        "pip install -r requirements.txt",
+        [str(venv_py), "-m", "pip", "install", "--quiet", "-r", str(reqs)],
     )
-    with time_block("pip install -r requirements.txt") as t_pip:
-        run([str(venv_py), "-m", "pip", "install", "--quiet", "-r", str(reqs)])
 
-    # 2. snapshot
-    with time_block("venvsnap snapshot"):
-        run([*venvsnap, "snapshot", "--venv", str(venv), "--output", str(lock)])
+    time_run(
+        "venvsnap snapshot",
+        [*venvsnap, "snapshot", "--venv", str(venv), "--output", str(lock)],
+    )
 
-    # 3. cold restore
     shutil.rmtree(venv)
     if cache.exists():
         shutil.rmtree(cache)
-    with time_block("venvsnap restore (cold cache)") as t_cold:
-        run(
-            [
-                *venvsnap,
-                "restore",
-                "--venv",
-                str(venv),
-                "--lockfile",
-                str(lock),
-                "--cache",
-                str(cache),
-            ]
-        )
+    cold = time_run(
+        "venvsnap restore (cold cache)",
+        [*venvsnap, "restore", "--venv", str(venv), "--lockfile", str(lock), "--cache", str(cache)],
+    )
 
-    # 4. warm restore
     shutil.rmtree(venv)
-    with time_block("venvsnap restore (warm cache)") as t_warm:
-        run(
-            [
-                *venvsnap,
-                "restore",
-                "--venv",
-                str(venv),
-                "--lockfile",
-                str(lock),
-                "--cache",
-                str(cache),
-            ]
-        )
+    warm = time_run(
+        "venvsnap restore (warm cache)",
+        [*venvsnap, "restore", "--venv", str(venv), "--lockfile", str(lock), "--cache", str(cache)],
+    )
 
     print()
     print("--- summary ---")
-    print(f"pip install -r       : {t_pip.elapsed:6.2f}s")
-    print(
-        f"venvsnap restore cold: {t_cold.elapsed:6.2f}s  "
-        f"({t_pip.elapsed / t_cold.elapsed:.1f}x faster)"
-    )
-    print(
-        f"venvsnap restore warm: {t_warm.elapsed:6.2f}s  "
-        f"({t_pip.elapsed / t_warm.elapsed:.1f}x faster)"
-    )
+    print(f"pip install -r       : {pip_elapsed:6.2f}s")
+    print(f"venvsnap restore cold: {cold:6.2f}s  ({pip_elapsed / cold:.1f}x)")
+    print(f"venvsnap restore warm: {warm:6.2f}s  ({pip_elapsed / warm:.1f}x)")
 
     shutil.rmtree(tmp, ignore_errors=True)
     return 0

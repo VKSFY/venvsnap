@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-import contextlib
 import sys
 import time
 from pathlib import Path
 from typing import Optional
 
-# Avoid UnicodeEncodeError on Windows consoles that default to cp1252.
+# Windows consoles often default to cp1252, which can't print the unicode
+# checkmarks below. Try to switch to UTF-8 and ignore the failure if the
+# stream doesn't support it (e.g. captured pipes).
 for _stream in (sys.stdout, sys.stderr):
-    with contextlib.suppress(AttributeError, OSError):
+    try:
         _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, OSError):
+        pass
 
 import typer
 from rich.console import Console
@@ -28,9 +31,10 @@ from rich.table import Table
 from venvsnap._version import __version__
 from venvsnap.cache import Cache
 from venvsnap.lockfile import DEFAULT_LOCKFILE_NAME, Lockfile, LockfileError
-from venvsnap.restore import RestoreError, restore
-from venvsnap.snapshot import snapshot
-from venvsnap.venv_utils import VenvError, is_venv
+from venvsnap.restore import RestoreError
+from venvsnap.restore import restore as run_restore
+from venvsnap.snapshot import snapshot as run_snapshot
+from venvsnap.venv_utils import VenvError, is_venv, list_installed
 
 app = typer.Typer(
     add_completion=False,
@@ -66,7 +70,7 @@ def _root(
 
 
 @app.command("snapshot")
-def snapshot_cmd(
+def snapshot(
     venv_path: Path = typer.Option(
         Path(".venv"), "--venv", "-e", help="Virtual environment to snapshot."
     ),
@@ -102,7 +106,7 @@ def snapshot_cmd(
                 elif status.startswith("skipped"):
                     bar.update(task, advance=1, description=f"Skipped {name}")
 
-            result = snapshot(venv_path, workers=workers, progress=on_progress)
+            result = run_snapshot(venv_path, workers=workers, progress=on_progress)
     except VenvError as exc:
         err_console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=2) from exc
@@ -125,7 +129,7 @@ def snapshot_cmd(
 
 
 @app.command("restore")
-def restore_cmd(
+def restore(
     venv_path: Path = typer.Option(
         Path(".venv"), "--venv", "-e", help="Where to materialize the venv."
     ),
@@ -149,7 +153,7 @@ def restore_cmd(
         err_console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=2) from exc
 
-    cache = Cache(cache_dir) if cache_dir else Cache()
+    cache = Cache(cache_dir)
 
     cached = sum(1 for p in lockfile.packages if cache.has(p.sha256, p.wheel_filename))
     needed = len(lockfile.packages) - cached
@@ -181,7 +185,7 @@ def restore_cmd(
                 elif status.startswith("failed"):
                     bar.update(dl_task, advance=1, description=f"Failed {name}")
 
-            result = restore(
+            result = run_restore(
                 lockfile,
                 venv_path,
                 cache=cache,
@@ -215,7 +219,7 @@ def restore_cmd(
 
 
 @app.command("verify")
-def verify_cmd(
+def verify(
     venv_path: Path = typer.Option(
         Path(".venv"), "--venv", "-e", help="Virtual environment to check."
     ),
@@ -227,8 +231,6 @@ def verify_cmd(
     ),
 ) -> None:
     """Compare a venv against a lockfile and report drift."""
-    from venvsnap.venv_utils import list_installed
-
     try:
         lockfile = Lockfile.load(lockfile_path)
     except LockfileError as exc:
@@ -274,7 +276,7 @@ def cache_info(
     cache_dir: Optional[Path] = typer.Option(None, "--cache", help="Override the cache directory."),
 ) -> None:
     """Show cache location and size."""
-    cache = Cache(cache_dir) if cache_dir else Cache()
+    cache = Cache(cache_dir)
     stats = cache.stats()
     table = Table.grid(padding=(0, 2))
     table.add_column(style="bold")
@@ -291,7 +293,7 @@ def cache_clean(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation."),
 ) -> None:
     """Delete every wheel from the local cache."""
-    cache = Cache(cache_dir) if cache_dir else Cache()
+    cache = Cache(cache_dir)
     stats = cache.stats()
     if stats.wheel_count == 0:
         console.print("cache is already empty")

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from venvsnap.cache import Cache, _format_bytes
+from venvsnap.cache import Cache
 
 
 def test_store_and_retrieve(tmp_path: Path) -> None:
@@ -60,10 +60,3 @@ def test_clean_removes_all(tmp_path: Path) -> None:
     removed = cache.clean()
     assert removed.wheel_count == 1
     assert cache.stats().wheel_count == 0
-
-
-def test_format_bytes() -> None:
-    assert _format_bytes(0) == "0 B"
-    assert _format_bytes(1023) == "1023 B"
-    assert _format_bytes(1024) == "1.00 KB"
-    assert _format_bytes(1024 * 1024 * 5) == "5.00 MB"

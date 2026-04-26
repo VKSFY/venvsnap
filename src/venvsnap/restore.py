@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,18 +37,13 @@ class RestoreResult:
         return len(self.installed)
 
 
-DownloadCallback = Callable[[str, str, str], None]
-# progress(name, version, status). status is "hit", "downloading",
-# "downloaded", or "failed: <reason>".
-
-
 def restore(
     lockfile: Lockfile,
     venv_path: Path,
     *,
     cache: Cache | None = None,
     workers: int = 8,
-    progress: DownloadCallback | None = None,
+    progress: Callable[[str, str, str], None] | None = None,
 ) -> RestoreResult:
     """Install every wheel from ``lockfile`` into ``venv_path``."""
     cache = cache or Cache()
@@ -63,8 +59,6 @@ def restore(
             cache_misses=0,
             bytes_downloaded=0,
         )
-
-    import time
 
     download_start = time.perf_counter()
     bytes_downloaded, hits, misses, failed = _ensure_wheels_cached(
@@ -109,7 +103,7 @@ def _ensure_wheels_cached(
     cache: Cache,
     *,
     workers: int,
-    progress: DownloadCallback | None,
+    progress: Callable[[str, str, str], None] | None,
 ) -> tuple[int, int, int, list[tuple[str, str]]]:
     hits = 0
     misses = 0
@@ -152,7 +146,7 @@ def _download_one(
     client: httpx.Client,
     cache: Cache,
     pkg: LockedPackage,
-    progress: DownloadCallback | None,
+    progress: Callable[[str, str, str], None] | None,
 ) -> int:
     if progress:
         progress(pkg.name, pkg.version, "downloading")

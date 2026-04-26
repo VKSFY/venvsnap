@@ -24,16 +24,11 @@ class SnapshotResult:
     skipped: list[tuple[str, str, str]]  # (name, version, reason)
 
 
-ProgressCallback = Callable[[str, str, str], None]
-# progress(name, version, status). status is "resolving", "resolved", or
-# "skipped: <reason>".
-
-
 def snapshot(
     venv_path: Path,
     *,
     workers: int = 8,
-    progress: ProgressCallback | None = None,
+    progress: Callable[[str, str, str], None] | None = None,
 ) -> SnapshotResult:
     """Walk ``venv_path`` with pip list and look every package up on PyPI."""
     installed = list_installed(venv_path)
