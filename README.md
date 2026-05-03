@@ -7,8 +7,16 @@ local cache. Once the wheels are cached, restoring an env doesn't touch PyPI.
 
 ## Install
 
+Once published to PyPI:
+
 ```
 pip install venvsnap
+```
+
+Until then, install straight from GitHub:
+
+```
+pip install git+https://github.com/VKSFY/venvsnap.git
 ```
 
 Requires Python 3.9 or newer.
